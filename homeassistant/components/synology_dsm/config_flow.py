@@ -176,6 +176,7 @@ class SynologyDSMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_ssdp(self, discovery_info):
         """Handle a discovered synology_dsm."""
+        _LOGGER.debug("async_step_ssdp - discovery_info: %s", discovery_info)
         parsed_url = urlparse(discovery_info[ssdp.ATTR_SSDP_LOCATION])
         friendly_name = (
             discovery_info[ssdp.ATTR_UPNP_FRIENDLY_NAME].split("(", 1)[0].strip()
@@ -185,9 +186,11 @@ class SynologyDSMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         # Synology NAS can broadcast on multiple IP addresses, since they can be connected to multiple ethernets.
         # The serial of the NAS is actually its MAC address.
         if self._mac_already_configured(mac):
+            _LOGGER.debug("async_step_ssdp - async_abort(reason=already_configured)")
             return self.async_abort(reason="already_configured")
 
         await self.async_set_unique_id(mac)
+        _LOGGER.debug("async_step_ssdp - self.context: %s", self.context)
         self._abort_if_unique_id_configured()
 
         self.discovered_conf = {
@@ -196,6 +199,7 @@ class SynologyDSMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         }
         # pylint: disable=no-member # https://github.com/PyCQA/pylint/issues/3167
         self.context["title_placeholders"] = self.discovered_conf
+        _LOGGER.debug("async_step_ssdp - return reached")
         return await self.async_step_user()
 
     async def async_step_import(self, user_input=None):
@@ -225,11 +229,13 @@ class SynologyDSMFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _mac_already_configured(self, mac):
         """See if we already have configured a NAS with this MAC address."""
+        _LOGGER.debug("_mac_already_configured - mac: %s", mac)
         existing_macs = [
             mac.replace("-", "")
             for entry in self._async_current_entries()
             for mac in entry.data.get(CONF_MAC, [])
         ]
+        _LOGGER.debug("_mac_already_configured - existing_macs: %s", existing_macs)
         return mac in existing_macs
 
 
